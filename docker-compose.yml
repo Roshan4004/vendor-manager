@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    image: vendorapp
+    container_name: vendorapp
+    command: python -u manage.py runserver 0.0.0.0:8000
