@@ -1,3 +1,21 @@
+# Project Description
+
+This is a vendor management appplication based on django rest framework.
+
+# Setup Instructions
+
+### We can setup application in two ways:
+    1. Using Docker:
+        - Make sure docker desktop is installed in your pc. You can download from [here](https://www.docker.com/products/docker-desktop/)
+        - Then simply run command > **docker compose up**
+        - Now, the application must be running. You can use the Documentation to use various apis.
+
+    2. Not using Docker:
+        - Make sure python 3.10.14 or older is installed in your environment.
+        - Then, run command > **pip install -r requirements.txt**
+        - Now run > **python manage.py migrate**
+        - Finally, run > **python manage.py runserver**. The application must be up and running now, refer the api documentation after this step.
+
 # API Documentation
 
 ## Register
