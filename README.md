@@ -4,19 +4,25 @@ This is a vendor management appplication based on django rest framework.
 
 # Setup Instructions
 
-### We can setup application in two ways:
-    1. Using Docker:
+### We can setup application in three ways:
+   1. Using Docker:
         - Make sure docker desktop is installed in your pc. You can download from [here](https://www.docker.com/products/docker-desktop/)
         - Then simply run command > **docker compose up**
         - Now, the application must be running. You can use the Documentation to use various apis.
+   2. Using my docker hub image:
+        - Make sure docker desktop is in in your pc.
+        - Head over to your command terminal and run > **docker pull roshan4004/vendorapp_main**
+        - Make sure there is nothing running on port 8000. Then run command > **docker run -itd -p 8000:8000 --name roshan_vendorapp -t roshan4004/vendorapp_main**
+		- Now, you should be able to use the application.
 
-    2. Not using Docker:
+   3. Not using Docker:
         - Make sure python 3.10.14 or older is installed in your environment.
         - Then, run command > **pip install -r requirements.txt**
         - Now run > **python manage.py migrate**
         - Finally, run > **python manage.py runserver**. The application must be up and running now, refer the api documentation after this step.
 
 # API Documentation
+The documentation for all endpoints are added below but if you want to use postman documentation for easiness please use this [link](https://documenter.getpostman.com/view/23812562/2sA3JM71Zc)
 
 ## Register
 
@@ -311,4 +317,3 @@ This endpoint is used to retrieve historical performance metrics for a vendor.
     "vendor": 1
 }
 ```
-
