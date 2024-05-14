@@ -22,7 +22,7 @@ class VendorAPI(APIView):
         id = pk
         if id is not None:
             if Vendor.objects.filter(id=id).first() is None:
-                return Response('Provided ID is invalid', status.HTTP_400_BAD_REQUEST)
+                return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
             serializer = VendorSerializer(Vendor.objects.get(id=id))
             return Response(serializer.data)
         ven = Vendor.objects.all()
@@ -39,11 +39,11 @@ class VendorAPI(APIView):
     def put(self, request, pk=None, format=None):
         id = pk
         if Vendor.objects.filter(id=id).first() is None:
-            return Response('Provided ID is invalid', status.HTTP_400_BAD_REQUEST)
+            return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
         serializer = VendorSerializer(Vendor.objects.get(id=id), data=request.data, context={'request_type': request.method, 'pk': pk})
         if serializer.is_valid():
             serializer.save()
-            return Response({'msg': 'Complete data updated'}, status.HTTP_201_CREATED)
+            return Response({'msg': 'Complete data updated'}, status.HTTP_200_OK)
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk=None, format=None):
@@ -60,7 +60,7 @@ class PurchaseAPI(APIView):
         id = pk
         if id is not None:
             if PurchaseOrder.objects.filter(id=id).first() is None:
-                return Response('Provided ID is invalid', status.HTTP_400_BAD_REQUEST)
+                return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
             serializer = PurchaseOrderSerializer(PurchaseOrder.objects.get(id=id))
             return Response(serializer.data)
         pur = PurchaseOrder.objects.all()
@@ -77,7 +77,7 @@ class PurchaseAPI(APIView):
     def put(self, request, pk=None, format=None):
         id = pk
         if PurchaseOrder.objects.filter(id=id).first() is None:
-            return Response('Provided ID is invalid', status.HTTP_400_BAD_REQUEST)
+            return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
         serializer = PurchaseOrderSerializer(PurchaseOrder.objects.get(id=id), data=request.data, context={'request_type': request.method, 'pk': pk})
         if serializer.is_valid():
             serializer.save()
@@ -96,7 +96,7 @@ class PurchaseAPI(APIView):
 def acknowledge(request, pk=None):
     id = pk
     if PurchaseOrder.objects.filter(id=id).first() is None:
-        return Response('Provided ID is invalid', status.HTTP_400_BAD_REQUEST)
+        return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
     ac_date = request.POST.get('acknowledgment_date')
     if ac_date is None:
         ac_date = datetime.datetime.now()
@@ -117,7 +117,7 @@ class HistoryAPI(APIView):
         id = pk
         if id is not None:
             if HistoricalPerformance.objects.filter(vendor=id).count() < 1:
-                return Response('Provided ID is invalid', status.HTTP_400_BAD_REQUEST)
+                return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
             serializer = HistoricalPerformanceSerializer(HistoricalPerformance.objects.filter(vendor=id), many=True)
             return Response(serializer.data)
         return Response({'msg': 'The provided ID is invalid, please check and try again.'}, status.HTTP_201_CREATED)
