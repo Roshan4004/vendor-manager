@@ -54,7 +54,6 @@ class LoginViewTest(APITestCase):
 
 class VendorViewTest(APITestCase):
     def setUp(self):
-        self.model=Vendor
         self.vendor_data={
             "name":"Vendor1",
             "contact_details":"Some number",
@@ -131,5 +130,93 @@ class VendorViewTest(APITestCase):
     def test_vendor_delete_success(self):
         VendorViewTest.test_vendor_create_succcess(self)    
         response=self.client.delete(reverse('vendor_some',args=[1]),self.vendor_data,headers=self.headers)
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(response.data['msg'],'Data deleted')
+
+class PurchaseOrderTest(APITestCase):
+    def setUp(self):
+        self.vendor1=Vendor.objects.create(name="Vendor1",contact_details="Some number",address="Somewhere",vendor_code="v1")
+        self.po_data={
+        "po_number": "p1",
+        "order_date": "2024-05-09 17:16:52.734505",
+        "delivery_date": "2024-05-14 17:18:52.158786",
+        "items": {
+            "SHIRT": 1
+        },
+        "quantity": 4,
+        "vendor": self.vendor1.pk
+            }
+        self.user=MyUser.objects.create(username="admin",password="admin",email="someone@gmail.com")
+        self.token=str(Token.objects.create(user=self.user))
+        self.headers={'Authorization':f'Token {self.token}'}
+    
+    def test_purchase_order_create_success(self):
+        response=self.client.post(reverse('purchase_order'),self.po_data,headers=self.headers,format="json")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        self.assertEqual(response.data['msg'],'Data created')
+    
+    def test_purchase_create_duplicate_ponumber(self):
+        PurchaseOrderTest.test_purchase_order_create_success(self)
+        response=self.client.post(reverse('purchase_order'),self.po_data,headers=self.headers,format="json")
+        print(response.data)
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(str(response.data['po_number'][0]),'purchase order with this po number already exists.')
+    
+    def test_purchase_get_all_success(self):
+        PurchaseOrderTest.test_purchase_order_create_success(self)
+        response=self.client.get(reverse('purchase_order'),headers=self.headers)
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(str(response.data[0]['po_number']),"p1")
+        self.assertEqual(response.data[0]['quantity'],4)
+        self.assertEqual(response.data[0]['acknowledgment_date'],None)
+    
+    def test_purchase_get_some_success(self):
+        PurchaseOrderTest.test_purchase_order_create_success(self)
+        response=self.client.get(reverse('purchase_order_some',args=[1]),headers=self.headers)
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(str(response.data['po_number']),"p1")
+        self.assertEqual(response.data['quantity'],4)
+    
+    def test_purchase_get_some_wrong_id(self):
+        response=self.client.get(reverse('purchase_order_some',args=[1]),headers=self.headers)
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(str(response.data['error']),"Provided ID is invalid")
+    
+    def test_purchase_put_success(self):
+        PurchaseOrderTest.test_purchase_order_create_success(self)
+        self.po_data["po_number"]="p2"
+        self.po_data["quantity"]=5
+        response=self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        self.assertEqual(response.data['msg'],'Complete data updated')
+
+    def test_purchase_put_duplicate_ponumber(self):
+
+        #Creating a new vendor
+        PurchaseOrderTest.test_purchase_order_create_success(self)
+
+        #Creating another vendor
+        self.po_data["po_number"]="p2"
+        self.po_data["quantity"]=5
+        PurchaseOrderTest.test_purchase_order_create_success(self)
+
+        #Changing values for put, but giving vendor_code v2 which is already used by Vendor2
+        self.po_data["po_number"]="p2"
+        self.po_data["quantity"]=7
+
+        #Updating that changed data to Vendor1, but the code is already used by Vendor2
+        response=self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+        print(response.data)
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(str(response.data['po_number'][0]),'purchase order with this po number already exists.')
+
+    def test_purchase_put_wrong_ID(self):
+        response=self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error'],'Provided ID is invalid')
+
+    def test_purchase_delete_success(self):
+        PurchaseOrderTest.test_purchase_order_create_success(self)    
+        response=self.client.delete(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
         self.assertEqual(response.status_code,status.HTTP_200_OK)
         self.assertEqual(response.data['msg'],'Data deleted')
