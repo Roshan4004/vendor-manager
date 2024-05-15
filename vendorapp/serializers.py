@@ -63,8 +63,6 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         if instance.status == "completed":
-            instance.issue_date = datetime.datetime.now()
-            instance.save(update_fields=["issue_date"])
             signals.order_completion_signal.send(sender=instance.__class__, instance=instance)
         return instance
 
