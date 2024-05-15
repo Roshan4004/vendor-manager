@@ -97,7 +97,7 @@ def acknowledge(request, pk=None):
     id = pk
     if PurchaseOrder.objects.filter(id=id).first() is None:
         return Response({'error':'Provided ID is invalid'}, status.HTTP_400_BAD_REQUEST)
-    ac_date = request.POST.get('acknowledgment_date')
+    ac_date = request.data.get('acknowledgment_date')
     if ac_date is None:
         ac_date = datetime.datetime.now()
     obj = PurchaseOrder.objects.filter(id=id).first()

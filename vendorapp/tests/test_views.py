@@ -7,6 +7,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_str
 from rest_framework import status
 from django.contrib.auth import get_user_model
+import datetime
 
 class RegisterViewTest(APITestCase):
 
@@ -158,7 +159,6 @@ class PurchaseOrderTest(APITestCase):
     def test_purchase_create_duplicate_ponumber(self):
         PurchaseOrderTest.test_purchase_order_create_success(self)
         response=self.client.post(reverse('purchase_order'),self.po_data,headers=self.headers,format="json")
-        print(response.data)
         self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
         self.assertEqual(str(response.data['po_number'][0]),'purchase order with this po number already exists.')
     
@@ -206,7 +206,6 @@ class PurchaseOrderTest(APITestCase):
 
         #Updating that changed data to Vendor1, but the code is already used by Vendor2
         response=self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
-        print(response.data)
         self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
         self.assertEqual(str(response.data['po_number'][0]),'purchase order with this po number already exists.')
 
@@ -220,3 +219,119 @@ class PurchaseOrderTest(APITestCase):
         response=self.client.delete(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
         self.assertEqual(response.status_code,status.HTTP_200_OK)
         self.assertEqual(response.data['msg'],'Data deleted')
+
+    def test_purchase_order_acknowledge_success(self):
+        PurchaseOrderTest.test_purchase_order_create_success(self)    
+        response=self.client.post(reverse('acknowledge',args=[1]),headers=self.headers,format="json")
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(response.data['msg'],'Purchase has been acknowledged!')
+    
+    def test_purchase_order_acknowledge_wrongID(self):    
+        response=self.client.post(reverse('acknowledge',args=[1]),headers=self.headers,format="json")
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error'],'Provided ID is invalid')
+    
+    def test_purchase_order_acknowledge_already_acknowledged(self):    
+        PurchaseOrderTest.test_purchase_order_create_success(self)  
+        response1=self.client.post(reverse('acknowledge',args=[1]),headers=self.headers,format="json")
+        response=self.client.post(reverse('acknowledge',args=[1]),headers=self.headers,format="json")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        self.assertEqual(response.data['msg'],'The purchase was already acknowledged!')
+
+class PerformanceTest(APITestCase):
+    def setUp(self):
+        self.vendor1=Vendor.objects.create(name="Vendor1",contact_details="Some number",address="Somewhere",vendor_code="v1")
+        self.po_data={
+        "po_number": "p1",
+        "order_date": "2024-05-09 17:16:52.734505",
+        "delivery_date": "2024-05-14 17:16:52.734505",
+        "issue_date": "2024-05-09 17:16:52.734505",
+        "items": {
+            "SHIRT": 1
+        },
+        "quantity": 4,
+        "vendor": self.vendor1
+            }
+        self.user=MyUser.objects.create(username="admin",password="admin",email="someone@gmail.com")
+        self.token=str(Token.objects.create(user=self.user))
+        self.headers={'Authorization':f'Token {self.token}'}
+        self.po=PurchaseOrder.objects.create(**self.po_data)
+
+    def test_average_response_time(self):
+        acknowledge_data={"acknowledgment_date":"2024-05-12 17:16:52.734505"}
+        self.client.post(reverse('acknowledge',args=[1]),acknowledge_data,headers=self.headers,format="json")
+        vendor=Vendor.objects.get(pk=1)
+        acknowledgment_date = datetime.datetime.strptime(acknowledge_data["acknowledgment_date"],"%Y-%m-%d %H:%M:%S.%f")
+        issue_date = datetime.datetime.strptime(self.po_data["issue_date"],"%Y-%m-%d %H:%M:%S.%f")
+        
+        self.assertEqual(round((acknowledgment_date-issue_date).total_seconds(), 2),vendor.average_response_time)
+
+    def test_on_time_delivery_ratio(self):
+        acknowledge_data={"acknowledgment_date":"2024-05-12 17:16:52.734505"}
+        self.client.post(reverse('acknowledge',args=[1]),acknowledge_data,headers=self.headers,format="json")
+        
+        self.po_data["status"]="completed"
+        self.po_data["vendor"]=self.vendor1.pk
+        self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+        vendor=Vendor.objects.get(pk=1)
+
+        self.assertEqual(vendor.on_time_delivery_rate,1.0)
+
+    def test_quality_rating_average(self):
+        acknowledge_data={"acknowledgment_date":"2024-05-12 17:16:52.734505"}
+        self.client.post(reverse('acknowledge',args=[1]),acknowledge_data,headers=self.headers,format="json")
+        
+        self.po_data["status"]="completed"
+        self.po_data["vendor"]=self.vendor1.pk
+        self.po_data["quality_rating"]=5
+        self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+        vendor=Vendor.objects.get(pk=1)
+
+        self.assertEqual(vendor.quality_rating_avg,5.0)
+
+    def test_fulfilment_ratio(self):
+        acknowledge_data={"acknowledgment_date":"2024-05-12 17:16:52.734505"}
+        self.client.post(reverse('acknowledge',args=[1]),acknowledge_data,headers=self.headers,format="json")
+        
+        self.po_data["status"]="completed"
+        self.po_data["vendor"]=self.vendor1.pk
+        self.po_data["quality_rating"]=5
+        self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+        vendor=Vendor.objects.get(pk=1)
+
+        self.assertEqual(vendor.fulfillment_rate,1.0)
+
+    def test_get_all_performance_metrics_success(self):
+        acknowledge_data={"acknowledgment_date":"2024-05-12 17:16:52.734505"}
+        self.client.post(reverse('acknowledge',args=[1]),acknowledge_data,headers=self.headers,format="json")
+        
+        self.po_data["status"]="completed"
+        self.po_data["vendor"]=self.vendor1.pk
+        self.po_data["quality_rating"]=5
+        self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+
+
+        response=self.client.get(reverse('performance',args=[1]),headers=self.headers,format="json")
+
+        self.assertEqual(response.data[0]['vendor'],1)
+        self.assertEqual(response.data[0]['on_time_delivery_rate'],1.0)
+        self.assertEqual(response.data[0]['quality_rating_avg'],5.0)
+        self.assertEqual(response.data[0]['average_response_time'],259200.0)
+        self.assertEqual(response.data[0]['fulfillment_rate'],1.0)
+
+    def test_get_all_performance_metrics_wrongID(self):
+        acknowledge_data={"acknowledgment_date":"2024-05-12 17:16:52.734505"}
+        self.client.post(reverse('acknowledge',args=[1]),acknowledge_data,headers=self.headers,format="json")
+        
+        self.po_data["status"]="completed"
+        self.po_data["vendor"]=self.vendor1.pk
+        self.po_data["quality_rating"]=5
+        self.client.put(reverse('purchase_order_some',args=[1]),self.po_data,headers=self.headers,format="json")
+
+
+        response=self.client.get(reverse('performance',args=[2]),headers=self.headers,format="json")
+
+        self.assertEqual(response.data['error'],'Provided ID is invalid')
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+
+    
