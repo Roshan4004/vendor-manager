@@ -8,17 +8,22 @@ This is a vendor management appplication based on django rest framework.
    1. Using Docker:
         - Make sure docker desktop is installed in your pc. You can download from [here](https://www.docker.com/products/docker-desktop/)
         - Then simply run command > **docker compose up**
+        - Now, to run tests enter in another terminal > **docker exec -it vendorapp sh**
+        - Then, enter > **python manage.py test**
         - Now, the application must be running. You can use the Documentation to use various apis.
    2. Using my docker hub image:
         - Make sure docker desktop is in in your pc.
         - Head over to your command terminal and run > **docker pull roshan4004/vendorapp_main**
         - Make sure there is nothing running on port 8000. Then run command > **docker run -itd -p 8000:8000 --name roshan_vendorapp -t roshan4004/vendorapp_main**
+        - Now, to run tests enter in another terminal > **docker exec -it roshan_vendorapp sh**
+        - Then, enter > **python manage.py test**
 		- Now, you should be able to use the application.
 
    3. Not using Docker:
         - Make sure python 3.10.14 or older is installed in your environment.
         - Then, run command > **pip install -r requirements.txt**
         - Now run > **python manage.py migrate**
+        - Then, in another terminal run > **python manage.py test**
         - Finally, run > **python manage.py runserver**. The application must be up and running now, refer the api documentation after this step.
 
 # API Documentation
